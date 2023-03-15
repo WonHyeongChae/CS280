@@ -104,13 +104,12 @@ void ObjectAllocator::Free(void* Object)
 	++stats_.FreeObjects_;
 }
 
-unsigned ObjectAllocator::DumpMemoryInUse(DUMPCALLBACK fn) const
+unsigned ObjectAllocator::DumpMemoryInUse([[maybe_unused]]DUMPCALLBACK fn) const
 {
-	
 	return 1;
 }
 
-unsigned ObjectAllocator::ValidatePages(VALIDATECALLBACK fn) const
+unsigned ObjectAllocator::ValidatePages([[maybe_unused]] VALIDATECALLBACK fn) const
 {
 	return 1;
 }
