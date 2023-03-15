@@ -279,12 +279,15 @@ public:
      */
     ObjectAllocator& operator=(const ObjectAllocator& oa) = delete;
 
+    void CreatePage();
+
 private:
     // Some "suggested" members (only a suggestion!)
     GenericObject* PageList_; //!< the beginning of the list of pages
     GenericObject* FreeList_; //!< the beginning of the list of objects
 
-    // LOTS of other private stuff...     
+    OAConfig config_;
+    OAStats stats_;
 };
 
 #endif
