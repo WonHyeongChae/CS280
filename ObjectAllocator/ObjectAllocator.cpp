@@ -1,19 +1,45 @@
 #include "ObjectAllocator.h"
 
 ObjectAllocator::ObjectAllocator(size_t ObjectSize, const OAConfig& config)
-	: config_(config), stats_(), PageList_(nullptr), FreeList_(nullptr)
+	:  PageList_(nullptr), FreeList_(nullptr), config_(config)
 {
 	stats_.ObjectSize_ = ObjectSize;
 	stats_.PageSize_ = config_.ObjectsPerPage_ * ObjectSize + sizeof(void*);
+
+	try
+	{
+		CreatePage();
+	}
+	catch(OAException& error)
+	{
+		throw(error);
+	}
 }
 
 ObjectAllocator::~ObjectAllocator()
 {
+	char* buffer;
+
+	while (PageList_ != nullptr)
+	{
+		buffer = reinterpret_cast<char*>(PageList_);
+		PageList_ = PageList_->Next;
+		delete[] buffer;
+	}
 }
 
 void ObjectAllocator::CreatePage()
 {
-	char* buffer = new char[stats_.PageSize_];
+	char* buffer;
+
+	try
+	{
+		buffer = new char[stats_.PageSize_];
+	}
+	catch (std::bad_alloc&)
+	{
+		throw(OAException(OAException::E_NO_MEMORY, "Not enough memory."));
+	}
 
 	PageList_ = reinterpret_cast<GenericObject*>(buffer);
 	buffer += sizeof(void*);
@@ -34,11 +60,22 @@ void ObjectAllocator::CreatePage()
 void* ObjectAllocator::Allocate([[maybe_unused]]const char* label)
 {
 	if (PageList_ == nullptr)
-		CreatePage();
+	{
+		try
+		{
+			CreatePage();
+		}
+		catch(OAException& error)
+		{
+			throw(error);
+		}
+	}
 	else if (FreeList_ == nullptr)
 	{
 		if (config_.MaxPages_ == 0 || stats_.PagesInUse_ < config_.MaxPages_)
 			CreatePage();
+		else
+			throw(OAException(OAException::E_NO_PAGES, "No more pages can be allocated."));
 	}
 
 	char* buffer2 = reinterpret_cast<char*>(FreeList_);
@@ -58,10 +95,18 @@ void* ObjectAllocator::Allocate([[maybe_unused]]const char* label)
 
 void ObjectAllocator::Free(void* Object)
 {
+	GenericObject* block = reinterpret_cast<GenericObject*>(Object);
+	block->Next = FreeList_;
+	FreeList_ = block;
+
+	--stats_.ObjectsInUse_;
+	++stats_.Deallocations_;
+	++stats_.FreeObjects_;
 }
 
 unsigned ObjectAllocator::DumpMemoryInUse(DUMPCALLBACK fn) const
 {
+	
 	return 1;
 }
 
