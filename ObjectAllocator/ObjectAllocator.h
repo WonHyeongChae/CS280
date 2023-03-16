@@ -279,7 +279,7 @@ public:
      */
     ObjectAllocator& operator=(const ObjectAllocator& oa) = delete;
 
-    void CreatePage();
+    void CreatePage(GenericObject* nextPage = 0);
 
 private:
     // Some "suggested" members (only a suggestion!)

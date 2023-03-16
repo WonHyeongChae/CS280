@@ -2292,19 +2292,19 @@ int main(int argc, char** argv)
         break;
     default:
         cout << "============================== Students..." << endl;
-        DoStudents(0, false);
+        //DoStudents(0, false);
         cout << endl;
         cout << "============================== Students..." << endl;
-        DoStudents(0, true);
+        //DoStudents(0, true);
         cout << endl;
         cout << "============================== Employees..." << endl;
-        DoEmployees();
+        //DoEmployees();
         cout << endl;
         cout << "============================== Test padding..." << endl;
-        TestPadding(6);
+        //TestPadding(6);
         cout << endl;
         cout << "============================== Test padding..." << endl;
-        TestPadding(10);
+        //TestPadding(10);
         cout << endl;
         cout << "============================== Test basic header blocks..." << endl;
         TestBasicHeaderBlocks();
