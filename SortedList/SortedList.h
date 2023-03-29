@@ -136,6 +136,4 @@ private:
     Pred m_sorter;
 };
 
-#include "SortedList.cpp"
-
 #endif
