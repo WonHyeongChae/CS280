@@ -3,10 +3,23 @@
 // Course : CS280
 // Term : Spring 2023
 
+#include "BList.h"
+
 template <typename T, int Size>
 BList<T, Size>::BList()
+    : head_(nullptr), tail_(nullptr)
 {
+    BNode* node = nullptr;
+    try
+    {
+        node = new BNode;
+    }
+    catch (const std::exception& e)
+    {
+        throw(BListException(BListException::E_NO_MEMORY, e.what()));
+    }
 
+    head_ = tail_ = node;
 }
 
 template <typename T, int Size>
@@ -22,11 +35,15 @@ BList<T, Size>::~BList()
 template <typename T, int Size>
 BList<T, Size>& BList<T, Size>::operator=(const BList& rhs)
 {
+    return *this;
 }
 
 template <typename T, int Size>
 void BList<T, Size>::push_back(const T& value)
 {
+
+
+
 }
 
 template <typename T, int Size>
@@ -94,4 +111,6 @@ const typename BList<T, Size>::BNode* BList<T, Size>::GetHead() const
 template <typename T, int Size>
 BListStats BList<T, Size>::GetStats() const
 {
+    BListStats stats;
+    stats.NodeSize = nodesize();
 }

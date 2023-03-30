@@ -163,6 +163,4 @@ private:
 
 };
 
-#include "BList.cpp"
-
 #endif // BLIST_H
