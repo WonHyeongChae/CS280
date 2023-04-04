@@ -15,19 +15,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="PRNG.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="driver.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <ClInclude Include="getopt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BList.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="PRNG.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+    <ClCompile Include="getopt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -15,18 +15,18 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="PRNG.cpp">
+    <ClCompile Include="driver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="driver.cpp">
+    <ClCompile Include="Sudoku.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BList.h">
+    <ClInclude Include="Sudoku.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PRNG.h">
+    <ClInclude Include="getopt.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

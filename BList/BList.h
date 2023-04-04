@@ -160,7 +160,15 @@ private:
     BNode* tail_; //!< points to the last node
 
     // Other private data and methods you may need ...
+    BListStats m_stats_;
 
+    void split_node(BNode* node, T value, int insertion_index);
+    void inc_count(BNode* node);
+    void delete_node(BNode* node);
+
+    BNode* get_node(const int& index) const;
 };
+
+#include "BList.cpp"
 
 #endif // BLIST_H
