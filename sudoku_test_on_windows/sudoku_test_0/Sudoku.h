@@ -68,8 +68,14 @@ public:
     SudokuStats GetStats() const;
 
 private:
+    SudokuStats stats_;
+    SUDOKU_CALLBACK callback_;
+    SymbolType stype_;
+    size_t move_;
 
-    // Other private data members or methods...
+    char* board_;
+    int board_size_;
+    bool place_value(unsigned x, unsigned y);
 };
 
 #endif  // SUDOKUH
