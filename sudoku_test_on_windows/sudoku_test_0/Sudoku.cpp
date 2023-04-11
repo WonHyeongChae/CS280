@@ -2,12 +2,13 @@
 
 #include <string> /* string */
 #include <cassert> /* assert */
+#include <iostream> /* cout, endl */
+#include <algorithm>
 
 Sudoku::Sudoku(int basesize, SymbolType stype, SUDOKU_CALLBACK callback)
 	: board_(nullptr), basesize_(basesize), callback_(callback), sym_type_(stype)
 {
     empty_cell_count_ = 0;
-    empty_cells_.clear();
     placed_count_ = 0;
     empty_index_ = 0;
     finished_ = false;
@@ -30,12 +31,6 @@ Sudoku::~Sudoku()
 	delete[] board_;
 }
 
-/*init_board with size
-    delete current board buffer
-    allocate board buffer of size+1
-    fill board buffer with EMPTY_CHAR
-    null terminate board buffer
- */
 void Sudoku::init_board(int size)
 {
 	// delete current board buffer
@@ -51,12 +46,6 @@ void Sudoku::init_board(int size)
 	board_[size] = '\0';
 }
 
-/*SetupBoard with values and size
-    init board with size
-    for index [0,size)
-        if value at index is not '.'
-            copy over value to board
- */
 void Sudoku::SetupBoard(const char* values, int size)
 {
 	assert(size != basesize_ * basesize_);
@@ -72,49 +61,43 @@ void Sudoku::SetupBoard(const char* values, int size)
 	}
 }
 
- /*
-record empty cells
-    for each cell index in board
-        if cell is empty at index
-            add index to empty cells list
-*/
-void Sudoku::record_empty_cells()
-{
-	empty_cell_count_ = 0;
-	empty_cells_.clear();
-	for (int i = 0; i < gridsize_; ++i)
-	{
-		if (is_empty(i))
-		{
-			empty_cells_.push_back(i);
-			++empty_cell_count_;
-		}
-	}
-}
-
-/*
-Solve
-	num of moves <- 0
-	aborted <- false
-	finished <- false
-	empty index <- 0
-	place count <- 0
-
-	clear empty cells list
-
-	record empty cells
-
-	send message starting if given a callback
-
-	place value at empty index
-
-	send message finished fail if failed to finish and given a callback
-	send message finished ok if finished and given a callback
- */
 void Sudoku::Solve()
 {
-	if (callback_)
-		callback_(*this, board_, MSG_STARTING, moves_, stats_.basesize, -1, 0, nullptr);
+    if (board_ == nullptr)
+        return;
+
+    moves_ = 0;
+    backtracks_ = 0;
+    placed_count_ = 0;
+    finished_ = false;
+    aborted_ = false;
+
+    int count = 0;
+    for (int i = 0; i < gridsize_; ++i)
+    {
+        if (board_[i] == EMPTY_CHAR)
+        {
+            ++count;
+        }
+        else
+        {
+            ++placed_count_;
+        }
+    }
+
+    empty_cell_count_ = count;
+    empty_cells_ = new int[empty_cell_count_];
+    get_empty_cells(0);
+
+    if (callback_)
+        callback_(*this, board_, MSG_STARTING, moves_, stats_.basesize, -1, 0, nullptr);
+
+    place_value(0);
+
+    if (callback_)
+        callback_(*this, board_, MSG_FINISHED_OK, moves_, stats_.basesize, -1, 0, nullptr);
+
+    delete[] empty_cells_;
 }
 
 const char* Sudoku::GetBoard() const
@@ -127,86 +110,144 @@ Sudoku::SudokuStats Sudoku::GetStats() const
     return stats_;
 }
 
-/*
- place value at index
-    return moved as true  if finished 
-    return moved as false if aborted
-
-    moved <- false
-    real index <- get value from empty cells list at index
-
-    peers <- get peers at real index
-
-    for i [0, blocksize)
-        update moves count
-        update placed_count
-        symbol <- ith symbol
-        board at real index <- symbol
-
-        if given a callback
-            send message abort check
-                abort <- true if callback says to
-                moved <- true
-                return moved
-            get duplicates of symbol from peers
-            send message placing with duplicate information
-        
-        if symbol is a duplicate among the peers
-            board at real index <- EMPTY_CHAR
-            moved <- false
-            update placed_count
-            send message removing if given callback
-        else not a duplicate
-            increment empty index
-            if placed_count equals empty cells list size
-                finished <- true
-                moved <- true
-                return moved
-            moved <- place_value at empty index
-            if finished or aborted
-                return moved
-            if not moved
-                board at real index <- EMPTY_CHAR
-                decrement empty index
-                update placed count
-                update backtracks
-                send message removing if given a callback
-    return moved
- */
 bool Sudoku::place_value(int index)
 {
-    if (finished_)
-        return true;
-    if (aborted_)
-		return false;
+    bool moved = false;
+    int real_index = empty_cells_[index];
 
-    bool moved = false;    
+    Peer* peers = new Peer[blocksize_];
+    get_peers(real_index, peers);
+
+    for (int i = 0; i < blocksize_; ++i)
+    {
+        moves_++;
+        placed_count_++;
+        char symbol = base_symbol_ + i;
+        board_[real_index] = symbol;
+
+        if (callback_)
+        {
+            int dup_indexes[3];
+            int duplicates = get_duplicates(symbol, peers, dup_indexes);
+            bool abort = callback_(*this, board_, MSG_ABORT_CHECK, moves_, basesize_, real_index, symbol, dup_indexes);
+            if (abort)
+            {
+                aborted_ = true;
+                moved = true;
+                return moved;
+            }
+            callback_(*this, board_, MSG_PLACING, moves_, basesize_, real_index, symbol, dup_indexes);
+        }
+
+        if (is_duplicate(symbol, peers) == -1)
+        {
+            board_[real_index] = EMPTY_CHAR;
+            moved = false;
+            placed_count_--;
+
+            if (callback_)
+                callback_(*this, board_, MSG_REMOVING, moves_, basesize_, real_index, symbol, nullptr);
+        }
+        else
+        {
+            empty_index_++;
+
+            if (placed_count_ == empty_cell_count_)
+            {
+                finished_ = true;
+                moved = true;
+                return moved;
+            }
+
+            moved = place_value(empty_index_);
+
+            if (finished_ || aborted_)
+            {
+                return moved;
+            }
+
+            if (!moved)
+            {
+                board_[real_index] = EMPTY_CHAR;
+                empty_index_--;
+                placed_count_--;
+                backtracks_++;
+
+                if (callback_)
+                    callback_(*this, board_, MSG_REMOVING, moves_, basesize_, real_index, symbol, nullptr);
+            }
+        }
+    }
+
+    stats_.moves = moves_;
+    stats_.backtracks = backtracks_;
+    stats_.placed = placed_count_;
 
     return moved;
 }
 
-/*
- get peers at index
-    peers <- {}
-    for each cell in row for index
-        if cell is not index
-            peers <- peers + {peer value, peer index}
-    for each cell in column for index
-        if cell is not index
-            peers <- peers + {peer value, peer index}
-    for each cell in basesize by basesize grid for index
-        if cell is not index and not in index row and not index column
-            peers <- peers + {peer value, peer index}
-    return peers
- */
 int Sudoku::get_peers(int index, Peer* peers)
 {
-    return 0;
+    int row = index_to_row(index);
+    int col = index_to_col(index);
+    int count = 0;
+
+    // Peers in the same row
+    for (int c = 0; c < blocksize_; ++c)
+    {
+        if (c != col)
+        {
+            peers[count].value = board_[row * blocksize_ + c];
+            peers[count].index = row * blocksize_ + c;
+            ++count;
+        }
+    }
+
+    // Peers in the same column
+    for (int r = 0; r < blocksize_; ++r)
+    {
+        if (r != row)
+        {
+            peers[count].value = board_[r * blocksize_ + col];
+            peers[count].index = r * blocksize_ + col;
+            ++count;
+        }
+    }
+
+    // Peers in the same subgrid
+    int subgrid_row = row / basesize_ * basesize_;
+    int subgrid_col = col / basesize_ * basesize_;
+
+    for (int r = subgrid_row; r < subgrid_row + basesize_; ++r)
+    {
+        for (int c = subgrid_col; c < subgrid_col + basesize_; ++c)
+        {
+            if (r != row && c != col)
+            {
+                peers[count].value = board_[r * blocksize_ + c];
+                peers[count].index = r * blocksize_ + c;
+                ++count;
+            }
+        }
+    }
+
+    return count;
 }
+
+
 
 void Sudoku::get_empty_cells(int from)
 {
+    empty_cell_count_ = 0;
 
+    for (int i = from; i < gridsize_; ++i)
+    {
+	    if (is_empty(i))
+        {
+	    	empty_cells_[empty_cell_count_] = i;
+			++empty_cell_count_;
+		}
+	}
 }
 
 bool Sudoku::is_empty(int index)
@@ -237,28 +278,61 @@ int Sudoku::index_to_col(int index)
 
 void Sudoku::dump_peers(Peer* peers)
 {
+    std::cout << "Peers: " << std::endl;
+    for (int i = 0; i < num_peers_; ++i)
+    {
+        std::cout << "Index: " << peers[i].index << ", Value: " << peers[i].value << std::endl;
+    }
 }
 
 bool Sudoku::validate_board()
 {
+    Peer* peers = new Peer[blocksize_];
+    int dup_indexes[3];
+
+    for (int index = 0; index < gridsize_; ++index)
+    {
+        if (is_empty(index))
+            continue;
+
+        char value = board_[index];
+        int num_peers = get_peers(index, peers);
+        int duplicates = get_duplicates(value, peers, dup_indexes);
+
+        if (duplicates > 0)
+        {
+            return false;
+        }
+    }
+
     return true;
 }
 
 int Sudoku::is_duplicate(char value, Peer* peers)
 {
-    return -1;
+    for (int i = 0; i < num_peers_; ++i)
+    {
+        if (peers[i].value == value)
+            return i; // Return the index of the duplicate in the peers array
+    }
+    return -1; // No duplicate found
 }
 
-/*
- get duplicates of value from peers
-    duplicates <- {-1,-1,-1}
-    for each peer
-        if peer value matches value
-            save peer index to duplicates
-    sort duplicates
-    return duplicates
- */
 int Sudoku::get_duplicates(char value, Peer* peers, int* dup_indexes)
 {
-    return 0;
+    int duplicate_count = 0;
+    for (int i = 0; i < num_peers_; ++i)
+    {
+        if (peers[i].value == value)
+        {
+            dup_indexes[duplicate_count++] = peers[i].index;
+        }
+    }
+
+    if (duplicate_count > 0)
+    {
+        std::sort(dup_indexes, dup_indexes + duplicate_count);
+    }
+
+    return duplicate_count;
 }

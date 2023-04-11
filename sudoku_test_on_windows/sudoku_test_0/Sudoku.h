@@ -70,7 +70,7 @@ public:
 
 private:
     char* board_;           //!< The 1-D representation of the board
-    std::list<int> empty_cells_;         //!< An array of empty cells remaining
+    int* empty_cells_;         //!< An array of empty cells remaining
     int empty_cell_count_;     //!< The number of empty cells remaining
     int placed_count_;         //!< How many values have been placed
     int empty_index_;          //!< Current index into the empty cell array
@@ -100,7 +100,6 @@ private:
 
     // index is a 1-D index in the 2-D board
 
-    void record_empty_cells();
     bool place_value(int index);            // Function that does the actual recursion
     void init_board(int size);              // Allocate and initialize the array (board)
     int get_peers(int index, Peer* peers);  // Gets all of the peers of 'index'
