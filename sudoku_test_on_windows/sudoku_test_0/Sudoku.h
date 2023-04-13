@@ -36,8 +36,8 @@ public:
          int index,            // index of current cell
          char value,           // symbol (value) in current cell
          int* dup_indexes      // index of each duplicate sorted from lowest
-         // index to highest. -1 means no conflict.
-         // max of 3 duplicates.
+                               // index to highest. -1 means no conflict.
+                               // max of 3 duplicates.
          );
 
     //! Statistics as the algorithm works
@@ -69,7 +69,7 @@ public:
     SudokuStats GetStats() const;
 
 private:
-    char* board_;           //!< The 1-D representation of the board
+    char* board_;              //!< The 1-D representation of the board
     int* empty_cells_;         //!< An array of empty cells remaining
     int empty_cell_count_;     //!< The number of empty cells remaining
     int placed_count_;         //!< How many values have been placed
@@ -100,18 +100,18 @@ private:
 
     // index is a 1-D index in the 2-D board
 
-    bool place_value(int index);            // Function that does the actual recursion
-    void init_board(int size);              // Allocate and initialize the array (board)
-    int get_peers(int index, Peer* peers);  // Gets all of the peers of 'index'
-    void get_empty_cells(int from);         // Gets all empty cells from 'from' to end of board (populates empty_cells_ array)
-    bool is_empty(int index);               // Checks if cell at 'index' is empty
-    int next_empty_cell(int from);          // Find next empty cell starting from 'from'
-    int index_to_row(int index);            // Gets the row from 'index'
-    int index_to_col(int index);            // Gets the column from 'index'
-    void dump_peers(Peer* peers);           // Debug: Function to print out peers
-    bool validate_board();                  // Debug: Checks that every value on the board is valid (no duplicates)
-    int is_duplicate(char value, Peer* peers); // Checks if 'value' is in 'peers' (duplicate)
-    int get_duplicates(char value, Peer* peers, int* dup_indexes); // Checks if 'value' is in peers and popluates 'dup_indexes' array
+    bool place_value(int index);                                    // Function that does the actual recursion
+    void init_board(int size);                                      // Allocate and initialize the array (board)
+    Peer* get_peers(int index, Peer* peers);                        // Gets all of the peers of 'index'
+    void get_empty_cells(int from);                                 // Gets all empty cells from 'from' to end of board (populates empty_cells_ array)
+    bool is_empty(int index);                                       // Checks if cell at 'index' is empty
+    int next_empty_cell(int from);                                  // Find next empty cell starting from 'from'
+    int index_to_row(int index);                                    // Gets the row from 'index'
+    int index_to_col(int index);                                    // Gets the column from 'index'
+    void dump_peers(Peer* peers);                                   // Debug: Function to print out peers
+    bool validate_board();                                          // Debug: Checks that every value on the board is valid (no duplicates)
+    int is_duplicate(char value, Peer* peers);                      // Checks if 'value' is in 'peers' (duplicate)
+    int* get_duplicates(char value, Peer* peers, int* dup_indexes); // Checks if 'value' is in peers and popluates 'dup_indexes' array
 };
 
 #endif  // SUDOKUH
