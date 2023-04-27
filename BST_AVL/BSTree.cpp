@@ -307,6 +307,8 @@ bool BSTree<T>::find_node(BinTree node, const T& value, unsigned& compares) cons
 template <typename T>
 typename BSTree<T>::BinTree BSTree<T>::find_at_index(BinTree tree, unsigned index) const
 {
+
+
     if (tree == nullptr)
         return nullptr;
     else

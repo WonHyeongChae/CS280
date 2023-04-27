@@ -116,7 +116,6 @@ protected:
     int height_;
 private:
     // private stuff...
-    //BinTree FindNodeAtIndex(BinTree tree, unsigned index) const;
     void copy_tree(const BinTree& source, BinTree& dest);
     void free_tree(BinTree tree);
     void insert_node(BinTree& node, const T& value, int depth);
