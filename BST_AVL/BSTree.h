@@ -109,11 +109,20 @@ protected:
     int tree_height(BinTree tree) const;
     void find_predecessor(BinTree tree, BinTree& predecessor) const;
 
+    ObjectAllocator* oa_;
+    BinTree root_;
+    bool share_oa_;
+    unsigned int size_;
+    int height_;
 private:
     // private stuff...
-    ObjectAllocator* oa_;
-    bool share_oa_;
-    BinTree root_;
+    //BinTree FindNodeAtIndex(BinTree tree, unsigned index) const;
+    void copy_tree(const BinTree& source, BinTree& dest);
+    void free_tree(BinTree tree);
+    void insert_node(BinTree& node, const T& value, int depth);
+    void remove_node(BinTree& node, const T& value);
+    bool find_node(BinTree node, const T& value, unsigned& compares) const;
+    BinTree find_at_index(BinTree tree, unsigned index) const;
 };
 
 #include "BSTree.cpp"

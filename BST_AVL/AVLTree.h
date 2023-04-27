@@ -19,7 +19,17 @@ public:
 
 private:
     // private stuff...
+    using BinTree = typename  BSTree<T>::BinTree;
+    using TreeStack = std::stack<BinTree*>;
+    void avl_insert(BinTree& tree, const T& value, TreeStack& stack);
+    void avl_remove(BinTree& tree, const T& value, TreeStack& stack);
+    void avl_rebalance(TreeStack& stack);
 
+    void rotate_left(BinTree& tree);
+    void rotate_right(BinTree& tree);
+    unsigned int count(BinTree& tree) const;
+    void update_count(BinTree& tree);
+    int balance_factor(BinTree& tree) const;
 };
 
 #include "AVLTree.cpp"
