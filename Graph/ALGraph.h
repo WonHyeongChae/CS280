@@ -1,3 +1,8 @@
+// Assignment : Graph
+// Name : Wonhyeong Chae
+// Course : CS280
+// Term : Spring 2023
+
 //---------------------------------------------------------------------------
 #ifndef ALGRAPHH
 #define ALGRAPHH
