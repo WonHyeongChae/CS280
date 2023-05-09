@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="driver.cpp">
+    <ClCompile Include="Support.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Support.cpp">
+    <ClCompile Include="driver_sample.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

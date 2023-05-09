@@ -52,6 +52,23 @@ public:
 
 private:
     // Private fields and methods ...
+    struct Node
+    {
+        unsigned id;
+        bool evaluated;
+        DijkstraInfo info;
+        bool operator<(const Node& rhs) const;
+    };
+
+    struct AdjacentInfo
+    {
+        unsigned id;
+        unsigned weight;
+        unsigned cost;
+    };
+
+    const unsigned INFINITY_ = static_cast<unsigned>(-1);
+    ALIST list_;
 };
 
 #endif

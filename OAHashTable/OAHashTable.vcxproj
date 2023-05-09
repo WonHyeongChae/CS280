@@ -128,7 +128,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="driver.cpp" />
+    <ClCompile Include="driver_sample.cpp" />
     <ClCompile Include="Support.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -3,17 +3,8 @@
 // Course : CS280
 // Term : Spring 2023
 #include <cstring>
+#include <cmath>
 
-/*
-copy config
-init stats
-table size <- GetClosestPrime to initial table size
-create table buffer with table size
-if there is a 2nd hash function
-    delete policy must be MARK
-
-Initialize Table
- */
 template <typename T>
 OAHashTable<T>::OAHashTable(const OAHTConfig& Config)
     : config_(Config)
@@ -28,6 +19,7 @@ OAHashTable<T>::OAHashTable(const OAHTConfig& Config)
     {
         config_.DeletionPolicy_ = OAHTDeletionPolicy::MARK;
     }
+    InitTable();
 }
 
 template <typename T>
@@ -37,23 +29,10 @@ OAHashTable<T>::~OAHashTable()
     delete[] table_;
 }
 
-/*calculate load factor
-    GrowTable if load factor is bigger than max load factor or if item count is table size
-
-    index, slot <- Get Index And Slot of key
-
-    if index shows that key is already in table
-        throw Duplicate exception
-    slot State <- OCCUPIED
-    slot Key <- key
-    slot Data <- data
-
-    update item count*/
 template <typename T>
 void OAHashTable<T>::insert([[maybe_unused]] const char* Key, [[maybe_unused]] const T& Data)
 {
-    auto load_factor = (stats_.Count_ + 1) / static_cast<double>(stats_.TableSize_);
-
+    double load_factor = static_cast<double>(stats_.Count_ + 1) / stats_.TableSize_;
     if (load_factor > config_.MaxLoadFactor_ || stats_.Count_ == stats_.TableSize_)
     {
         GrowTable();
@@ -64,7 +43,7 @@ void OAHashTable<T>::insert([[maybe_unused]] const char* Key, [[maybe_unused]] c
 
     if (index != -1)
     {
-        throw OAHashTableException(OAHashTableException::E_DUPLICATE, "Key already exists in the table");
+        throw OAHashTableException(OAHashTableException::E_DUPLICATE, "Duplicate key.");
     }
 
     slot->State = OAHTSlot::OCCUPIED;
@@ -74,40 +53,52 @@ void OAHashTable<T>::insert([[maybe_unused]] const char* Key, [[maybe_unused]] c
     stats_.Count_++;
 }
 
-/*index, slot <- Get Index And Slot of key
-    if index shows that the key is not in the table
-        throw exception ITEM_NOT_FOUND
-
-    update item count
-
-    free slot data if given a free callback
-
-    if MARK policy
-        slot state <- DELETED
-    else PACK policy
-        slot state <- UNOCCUPIED
-        start index <- index
-        increment index
-        wrap around index if it is larger than table size
-        slot <- slot at new index
-
-        while slot state is OCCUPIED and index is not start index
-            slot state <- UNOCCUPIED
-            update item count
-            current key <- copy of slot key
-            insert (current key, slot Data)
-            increment index
-            wrap around index if it is larger than table size
-            slot <- slot at new index*/
 template <typename T>
 void OAHashTable<T>::remove([[maybe_unused]] const char* Key)
 {
+    OAHTSlot* slot;
+    int index = IndexOf(Key, slot);
+
+    if (index == -1)
+    {
+        throw OAHashTableException(OAHashTableException::E_ITEM_NOT_FOUND, "Item not found.");
+    }
+
+    stats_.Count_--;
+
+    if (config_.FreeProc_ != nullptr)
+    {
+        config_.FreeProc_(slot->Data);
+    }
+
+    if (config_.DeletionPolicy_ == MARK)
+    {
+        slot->State = OAHTSlot::DELETED;
+    }
+    else
+    {
+        slot->State = OAHTSlot::UNOCCUPIED;
+
+        int start_index = index;
+        index = (index + 1) % static_cast<int>(stats_.TableSize_);
+        slot = &table_[index];
+
+        while (slot->State == OAHTSlot::OCCUPIED && index != start_index)
+        {
+            slot->State = OAHTSlot::UNOCCUPIED;
+            stats_.Count_--;
+
+            char current_key[MAX_KEYLEN];
+            strncpy(current_key, slot->Key, MAX_KEYLEN - 1);
+
+            insert(current_key, slot->Data);
+
+            index = (index + 1) % static_cast<int>(stats_.TableSize_);
+            slot = &table_[index];
+        }
+    }
 }
 
-/*index, slot <- Get Index And Slot of key
-    if index shows that the key is not in the table
-        throw exception ITEM_NOT_FOUND
-    return slot data*/
 template <typename T>
 const T& OAHashTable<T>::find([[maybe_unused]] const char* Key) const
 {
@@ -122,14 +113,10 @@ const T& OAHashTable<T>::find([[maybe_unused]] const char* Key) const
     return slot->Data;
 }
 
-/*if there is a free callback
-        for each OCCUPIED slot
-            free data
-    Initialize Table*/
 template <typename T>
 void OAHashTable<T>::clear()
 {
-    if (config_.FreeProc_ != nullptr)
+    if (config_.FreeProc_)
     {
         for (unsigned i = 0; i < stats_.TableSize_; ++i)
         {
@@ -138,8 +125,8 @@ void OAHashTable<T>::clear()
                 config_.FreeProc_(table_[i].Data);
             }
         }
-        InitTable();
     }
+    InitTable();
 }
 
 template <typename T>
@@ -154,9 +141,6 @@ const typename OAHashTable<T>::OAHTSlot* OAHashTable<T>::GetTable() const
     return table_;
 }
 
-/*for each slot in table
-        set state to be UNOCCUPIED
-    item count <- 0*/
 template <typename T>
 void OAHashTable<T>::InitTable()
 {
@@ -167,103 +151,97 @@ void OAHashTable<T>::InitTable()
     stats_.Count_ = 0;
 }
 
-/*new size <- ceil of current table size multiply by growth factor
-    new size <- GetClosestPrime to new size
-    old table <- current table
-    old table size <- current table size
-    set table to buffer with new table size
-    if failed to create new buffer
-        throw NO MEMORY exception
-    table size <- new size
-    for each OCCUPIED slot in old table
-        insert (current key, current value)
-    delete old table
-    update number of expansions*/
 template <typename T>
 void OAHashTable<T>::GrowTable()
 {
+    unsigned new_size = static_cast<unsigned>(ceil(stats_.TableSize_ * config_.GrowthFactor_));
+    new_size = GetClosestPrime(new_size);
+
+    OAHTSlot* old_table = table_;
+    unsigned oldTableSize = stats_.TableSize_;
+
+    try
+    {
+        table_ = new OAHTSlot[new_size];
+    }
+    catch (std::bad_alloc& e)
+    {
+        throw e.what();
+    }
+
+    stats_.TableSize_ = new_size;
+
+    this->InitTable();
+
+    for (unsigned i = 0; i < oldTableSize; ++i)
+    {
+        if (old_table[i].State == OAHTSlot::OCCUPIED)
+        {
+            insert(old_table[i].Key, old_table[i].Data);
+        }
+    }
+
+    delete[] old_table;
+
+    stats_.Expansions_++;
 }
 
-/*slot <- null
-    index <- 1st hash of key with table size
-    start index <- index
-
-    if using 2nd hash
-        stride <- 1 + 2nd hash of key with (table size - 1)
-    else linear probing
-        stride <- 1
-
-    slot probe count <- 0
-
-    while not done
-        Update global probe count
-        Update slot probe count
-        current slot <- slot at index
-        if current slot is DELETED and slot is null
-            slot <- current slot
-        if current slot is UNOCCUPIED
-            if slot is null
-                slot <- current slot
-            save slot probe count to slot
-            return {-1, slot}
-        else if current slot is Not DELETED
-            if current slot key equals key
-                slot <- current slot
-                save slot probe count to slot
-                return {index, slot}
-        index <- index + stride
-        wrap around index if it is larger than table size
-        if index equals start index
-            done <- true
-
-    return {-1, slot}*/
 template <typename T>
 int OAHashTable<T>::IndexOf(const char* Key, OAHTSlot*& Slot) const
 {
     Slot = nullptr;
-    int index = static_cast<int>(config_.PrimaryHashFunc_(Key, stats_.TableSize_));
+    int index = static_cast<int>(stats_.PrimaryHashFunc_(Key, stats_.TableSize_));
     int start_index = index;
     int stride;
 
-    if (config_.SecondaryHashFunc_)
-        stride = 1 + static_cast<int>(config_.SecondaryHashFunc_(Key, stats_.TableSize_ - 1));
+    if (stats_.SecondaryHashFunc_)
+    {
+        stride = 1 + static_cast<int>(stats_.SecondaryHashFunc_(Key, stats_.TableSize_ - 1));
+    }
     else
+    {
         stride = 1;
+    }
 
-    int slot_probes = 0;
+    int slot_probe_count = 0;
     bool done = false;
 
     while (!done)
     {
         stats_.Probes_++;
-        slot_probes++;
+        slot_probe_count++;
 
-        OAHTSlot& curr_slot = table_[index];
+        OAHTSlot& current_slot = table_[index];
 
-        if (curr_slot.State == OAHTSlot::DELETED && Slot == nullptr)
-            Slot = &curr_slot;
-
-        if (curr_slot.State == OAHTSlot::UNOCCUPIED)
+        if (current_slot.State == OAHTSlot::DELETED && !Slot)
+        {
+            Slot = &current_slot;
+        }
+        if (current_slot.State == OAHTSlot::UNOCCUPIED)
         {
             if (Slot == nullptr)
-                Slot = &curr_slot;
-            Slot->probes = slot_probes;
+            {
+                Slot = &current_slot;
+            }
+            Slot->probes = slot_probe_count;
             return -1;
         }
-        else if (curr_slot.State != OAHTSlot::DELETED)
+        else if (current_slot.State != OAHTSlot::DELETED)
         {
-            if (strcmp(curr_slot.Key, Key) == 0)
+            if (strncmp(current_slot.Key, Key, MAX_KEYLEN - 1) == 0)
             {
-                Slot = &curr_slot;
-                Slot->probes = slot_probes;
+                Slot = &current_slot;
+                Slot->probes = slot_probe_count;
                 return index;
             }
         }
 
-        index = (index + stride);
+        index = (index + stride) % static_cast<int>(stats_.TableSize_);
 
         if (index == start_index)
+        {
             done = true;
+        }
     }
 
     return -1;
