@@ -104,7 +104,15 @@ public:
 
 private:
     // Private fields and methods ...
+    void free_node(RBNode* node);
+    void insert_node(RBNode*& node, const T& value, int depth);
+    bool find_node(RBNode* node, const T& item, unsigned& compares) const;
+    int tree_height(RBNode* node) const;
+    RBNode* make_node(const T& item) const;
 
+    RBNode* root_;
+    unsigned int size_;
+    int height_;
 };
 
 #include "RBTree.cpp"

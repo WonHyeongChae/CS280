@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="NonTemplatedDriver.cpp">
+    <ClCompile Include="TemplatedDriver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
