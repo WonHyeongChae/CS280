@@ -104,13 +104,6 @@ public:
 
 private:
     // Private fields and methods ...
-    void free_node(RBNode* node);
-    void insert_fix_up(RBNode* new_node);
-    void rotate_left(RBNode* node);
-    void rotate_right(RBNode* node);
-    bool find_node(RBNode* node, const T& item, unsigned& compares) const;
-    int tree_height(RBNode* node) const;
-    RBNode* make_node(const T& item) const;
 
     RBNode* root_;
     unsigned int size_;

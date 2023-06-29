@@ -18,100 +18,18 @@ RBTree<T>::~RBTree()
 template <typename T>
 void RBTree<T>::insert(const T& item)
 {
-    RBNode* new_node = make_node(item);
-    RBNode* parent_node = nullptr;
-    RBNode* traversing_node = root_;
-
-    // Searching for a place to put a new node and finding the parent
-    while (traversing_node != nullptr)
+    try
     {
-        parent_node = traversing_node;
-        if (item < traversing_node->data)
-        {
-            traversing_node = traversing_node->left;
-        }
-        else if (item > traversing_node->data)
-        {
-            traversing_node = traversing_node->right;
-        }
-        else
-        {
-            throw RBTreeException(RBTreeException::E_DUPLICATE, "Duplicate item inserted");
-        }
+        insert_node(root_, item, 0);
     }
-
-    new_node->parent = parent_node;
-
-    // if new node is a root node
-    if (parent_node == nullptr)
+    catch (const RBTreeException& except)
     {
-        root_ = new_node;
+        throw except;
     }
-    // if new node is not a root node
-    else if (item < parent_node->data)
-    {
-        parent_node->left = new_node;
-    }
-    else
-    {
-        parent_node->right = new_node;
-    }
-
-    // Increment the size here
-    ++size_;
-
-    // if new node is a root node
-    if (new_node->parent == nullptr)
-    {
-        new_node->color = rbBLACK;
-        return;
-    }
-
-    // if the parent of new node is a root node
-    if (new_node->parent->parent == nullptr)
-    {
-        return;
-    }
-
-    // Fixing tree properties after insertion
-    insert_fix_up(new_node);
 }
 
 template <typename T>
-void RBTree<T>::insert_fix_up(RBNode* new_node)
-{
-    while (new_node != root_ && new_node->parent->color == rbRED)
-    {
-        RBNode* grandparent_node = new_node->parent->parent;
-        bool is_left_child = new_node->parent == grandparent_node->left;
-        RBNode* uncle_node = is_left_child ? grandparent_node->right : grandparent_node->left;
-
-        if (uncle_node != nullptr && uncle_node->color == rbRED)
-        {
-            new_node->parent->color = rbBLACK;
-            uncle_node->color = rbBLACK;
-            grandparent_node->color = rbRED;
-            new_node = grandparent_node;
-            grandparent_node = new_node->parent->parent;
-        }
-        else
-        {
-            if (new_node == (is_left_child ? new_node->parent->right : new_node->parent->left))
-            {
-                new_node = new_node->parent;
-                is_left_child ? rotate_left(new_node) : rotate_right(new_node);
-            }
-            new_node->parent->color = rbBLACK;
-            grandparent_node->color = rbRED;
-
-            is_left_child ? rotate_right(grandparent_node) : rotate_left(grandparent_node);
-        }
-    }
-    root_->color = rbBLACK;
-}
-
-template <typename T>
-void RBTree<T>::remove(const T& item)
+void RBTree<T>::remove([[maybe_unused]]const T& item)
 {
 
 }
@@ -132,11 +50,7 @@ void RBTree<T>::clear()
 template <typename T>
 bool RBTree<T>::find(const T& value, unsigned& compares) const
 {
-    compares = 0;
-    if (root_ != nullptr)
-        return find_node(root_, value, compares);
-    else
-        return false;
+    return find_node(root_, value, compares);
 }
 
 template <typename T>
@@ -174,63 +88,43 @@ typename RBTree<T>::RBNode* RBTree<T>::make_node(const T& item) const
 {
     try
     {
-        RBNode* node = new RBNode;
-        node->left = nullptr;
-        node->right = nullptr;
-        node->parent = nullptr;
-        node->color = rbRED; // new nodes are red by default
-        node->data = item;
+        RBNode* node = new RBNode(item);
 
         return node;
     }
-    catch (const std::bad_alloc&)
+    catch (const RBTreeException& except)
     {
-        throw RBTreeException(RBTreeException::E_NO_MEMORY, "Out of memory");
+        throw except;
     }
 }
 
 template <typename T>
-void RBTree<T>::rotate_left(RBNode* node)
+void RBTree<T>::insert_node(RBNode*& node, const T& item, int depth)
 {
-    RBNode* right_child = node->right;
-    node->right = right_child->left;
+    try
+    {
+        if (node == nullptr)
+        {
+            if (depth > height_)
+                ++height_;
+            node = make_node(item);
+            ++size_;
+            return;
+        }
 
-    if (node->right != nullptr)
-        node->right->parent = node;
-
-    right_child->parent = node->parent;
-
-    if (node->parent == nullptr)
-        root_ = right_child;
-    else if (node == node->parent->left)
-        node->parent->left = right_child;
-    else
-        node->parent->right = right_child;
-
-    right_child->left = node;
-    node->parent = right_child;
-}
-
-template <typename T>
-void RBTree<T>::rotate_right(RBNode* node)
-{
-    RBNode* left_child = node->left;
-    node->left = left_child->right;
-
-    if (node->left != nullptr)
-        node->left->parent = node;
-
-    left_child->parent = node->parent;
-
-    if (node->parent == nullptr)
-        root_ = left_child;
-    else if (node == node->parent->right)
-        node->parent->right = left_child;
-    else
-        node->parent->left = left_child;
-
-    left_child->right = node;
-    node->parent = left_child;
+        if (item < node->data)
+        {
+            insert_node(node->left, item, depth + 1);
+        }
+        else
+        {
+            insert_node(node->right, item, depth + 1);
+        }
+    }
+    catch (const RBTreeException& except)
+    {
+        throw except;
+    }
 }
 
 template <typename T>
@@ -241,33 +135,26 @@ void RBTree<T>::free_node(RBNode* node)
     free_node(node->left);
     free_node(node->right);
 
-    delete node;
+    free_node(node);
 }
 
 template <typename T>
 bool RBTree<T>::find_node(RBNode* node, const T& value, unsigned& compares) const
 {
-    compares++;
-    
+    ++compares;
+
     if (node == nullptr)
         return false;
-
-    if (value < node->data)
-    {
-        return find_node(node->left, value, compares);
-    }
-    else if (value > node->data)
-    {
-        return find_node(node->right, value, compares);
-    }
-    else
-    {
+    else if (value == node->data)
         return true;
-    }
+    else if (value < node->data)
+        return find_node(node->left, value, compares);
+    else
+        return find_node(node->right, value, compares);
 }
 
 template <typename T>
-int RBTree<T>::tree_height(RBNode* node) const
+int RBTree<T>::tree_height(RBNode * node) const
 {
     if (node == nullptr)
         return -1;
