@@ -6,6 +6,7 @@
 #include "ALGraph.h"
 #include <algorithm>
 #include <queue>
+#include <functional>
 
 ALGraph::ALGraph(unsigned size)
 {
@@ -42,7 +43,14 @@ void ALGraph::AddUEdge(unsigned node1, unsigned node2, unsigned weight)
 
 std::vector<unsigned> ALGraph::SearchFrom([[maybe_unused]] unsigned start_node, [[maybe_unused]] TRAVERSAL_METHOD method) const
 {
-    return std::vector<unsigned>();
+    if (method == DEPTH_FIRST)
+    {
+        return DepthFirstSearch(start_node);
+    }
+    else
+    {
+        return BreadthFirstSearch(start_node);
+    }
 }
 
 std::vector<DijkstraInfo> ALGraph::Dijkstra(unsigned start_node) const
@@ -57,7 +65,6 @@ std::vector<DijkstraInfo> ALGraph::Dijkstra(unsigned start_node) const
     result.reserve(list_.size());
     nodes.reserve(list_.size());
 
-    //initialize all nodes in graph
     for (unsigned i = 1; i < list_.size() + 1; ++i)
     {
         Node node;
@@ -77,7 +84,6 @@ std::vector<DijkstraInfo> ALGraph::Dijkstra(unsigned start_node) const
         nodes.push_back(node);
     }
 
-    //push all nodes into queue with updated edge costs.
     const auto& adj_nodes = GetAdjList(start_node);
 
     for (const auto& info : adj_nodes)
@@ -89,7 +95,6 @@ std::vector<DijkstraInfo> ALGraph::Dijkstra(unsigned start_node) const
         node.info.path.push_back(start_node);
     }
 
-    //go through the priority queue and evaluate all nodes.
     while (!pq.empty())
     {
         Node* v = pq.top();
@@ -133,10 +138,74 @@ ALIST ALGraph::GetAList() const
 
 bool ALGraph::ImplementedSearches()
 {
-    return false;
+    return true;
 }
 
 bool ALGraph::Node::operator<(const Node& rhs) const
 {
     return info.cost < rhs.info.cost;
+}
+
+std::vector<unsigned> ALGraph::DepthFirstSearch(unsigned start_node) const
+{
+    std::vector<unsigned> visited;
+    std::vector<bool> visited_flags(list_.size(), false);
+    std::function<void(unsigned)> dfs = [&](unsigned current_node)
+    {
+        visited_flags[current_node - 1] = true;
+        visited.push_back(current_node);
+
+        // Sort neighbors by weight in descending order
+        std::vector<AdjacencyInfo> neighbors = list_[current_node - 1];
+        std::sort(neighbors.begin(), neighbors.end(), [](const AdjacencyInfo& a, const AdjacencyInfo& b)
+        {
+            return a.weight > b.weight;
+        });
+
+        for (const auto& neighbor : neighbors)
+        {
+            if (!visited_flags[neighbor.id - 1])
+            {
+                dfs(neighbor.id);
+            }
+        }
+    };
+
+    dfs(start_node);
+    return visited;
+}
+
+std::vector<unsigned> ALGraph::BreadthFirstSearch(unsigned start_node) const
+{
+    std::vector<unsigned> visited;
+    std::vector<bool> visited_flags(list_.size(), false);
+
+    std::queue<unsigned> node_queue;
+    node_queue.push(start_node);
+    visited_flags[start_node - 1] = true;
+
+    while (!node_queue.empty())
+    {
+        unsigned current_node = node_queue.front();
+        node_queue.pop();
+
+        visited.push_back(current_node);
+
+        auto neighbors = list_[current_node - 1];
+
+        // Sort neighbors in decreasing order of their weights
+        std::sort(neighbors.begin(), neighbors.end(),
+                  [](const AdjacencyInfo& a, const AdjacencyInfo& b) { return a.weight > b.weight; });
+
+        for (const auto& neighbor : neighbors)
+        {
+            if (!visited_flags[neighbor.id - 1])
+            {
+                node_queue.push(neighbor.id);
+                visited_flags[neighbor.id - 1] = true;
+            }
+        }
+    }
+
+    return visited;
 }

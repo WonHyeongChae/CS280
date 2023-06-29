@@ -69,6 +69,9 @@ private:
 
     const unsigned INFINITY_ = static_cast<unsigned>(-1);
     ALIST list_;
+
+    std::vector<unsigned> DepthFirstSearch(unsigned start_node) const;
+    std::vector<unsigned> BreadthFirstSearch(unsigned start_node) const;
 };
 
 #endif
